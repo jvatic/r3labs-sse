@@ -16,14 +16,16 @@ import (
 )
 
 var (
-	headerID    = []byte("id:")
-	headerData  = []byte("data:")
-	headerEvent = []byte("event:")
-	headerRetry = []byte("retry:")
+	headerID      = []byte("id:")
+	headerData    = []byte("data:")
+	headerEvent   = []byte("event:")
+	headerRetry   = []byte("retry:")
+	headerComment = []byte(":")
 )
 
 type EventParseConfig struct {
 	EncodingBase64 bool
+	Comments       bool
 }
 
 // Event holds all of the event source fields
@@ -60,6 +62,8 @@ func ParseEvent(msg []byte, cfg EventParseConfig) (*Event, error) {
 			e.Event = append([]byte(nil), trimHeader(len(headerEvent), line)...)
 		case bytes.HasPrefix(line, headerRetry):
 			e.Retry = append([]byte(nil), trimHeader(len(headerRetry), line)...)
+		case cfg.Comments && bytes.HasPrefix(line, headerComment):
+			e.Comment = append([]byte(nil), trimHeader(len(headerComment), line)...)
 		default:
 			// Ignore any garbage that doesn't match what we're looking for.
 		}
@@ -99,6 +103,10 @@ func trimHeader(size int, data []byte) []byte {
 
 func (e *Event) hasContent() bool {
 	return len(e.ID) > 0 || len(e.Data) > 0 || len(e.Event) > 0 || len(e.Retry) > 0
+}
+
+func (e *Event) hasComment() bool {
+	return len(e.Comment) > 0
 }
 
 // EventStreamReader scans an io.Reader looking for EventStream messages.

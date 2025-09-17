@@ -22,6 +22,12 @@ func ClientMaxBufferSize(s int) func(c *Client) {
 	}
 }
 
+func ClientWithComments() func(c *Client) {
+	return func(c *Client) {
+		c.EventParseConfig.Comments = true
+	}
+}
+
 // ConnCallback defines a function to be called on a particular connection event
 type ConnCallback func(c *Client)
 
@@ -231,7 +237,7 @@ func (c *Client) readLoop(reader *EventStreamReader, outCh chan *Event, erChan c
 			}
 
 			// Send downstream if the event has something useful
-			if msg.hasContent() {
+			if msg.hasContent() || (c.EventParseConfig.Comments && msg.hasComment()) {
 				outCh <- msg
 			}
 		}
