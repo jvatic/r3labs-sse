@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 )
 
@@ -123,6 +124,9 @@ func (e *Event) Write(w io.Writer, cfg EventWriteConfig) (int, error) {
 			for i := range sd {
 				if err := writef("data: %s\n", sd[i]); err != nil {
 					return nWritten, err
+				}
+				if flusher, ok := w.(http.Flusher); ok {
+					flusher.Flush()
 				}
 			}
 		} else {
