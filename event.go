@@ -101,6 +101,64 @@ func trimHeader(size int, data []byte) []byte {
 	return data
 }
 
+type EventWriteConfig struct {
+	SplitData bool
+}
+
+func (e *Event) Write(w io.Writer, cfg EventWriteConfig) (int, error) {
+	var nWritten int
+	writef := func(format string, a ...interface{}) error {
+		n, err := fmt.Fprintf(w, format, a...)
+		nWritten += n
+		return err
+	}
+
+	if len(e.Data) > 0 {
+		if err := writef("id: %s\n", e.ID); err != nil {
+			return nWritten, err
+		}
+
+		if cfg.SplitData {
+			sd := bytes.Split(e.Data, []byte("\n"))
+			for i := range sd {
+				if err := writef("data: %s\n", sd[i]); err != nil {
+					return nWritten, err
+				}
+			}
+		} else {
+			if bytes.HasPrefix(e.Data, []byte(":")) {
+				if err := writef("%s\n", e.Data); err != nil {
+					return nWritten, err
+				}
+			} else {
+				if err := writef("data: %s\n", e.Data); err != nil {
+					return nWritten, err
+				}
+			}
+		}
+
+		if len(e.Event) > 0 {
+			if err := writef("event: %s\n", e.Event); err != nil {
+				return nWritten, err
+			}
+		}
+
+		if len(e.Retry) > 0 {
+			if err := writef("retry: %s\n", e.Retry); err != nil {
+				return nWritten, err
+			}
+		}
+	}
+
+	if len(e.Comment) > 0 {
+		if err := writef(": %s\n", e.Comment); err != nil {
+			return nWritten, err
+		}
+	}
+
+	return nWritten, nil
+}
+
 func (e *Event) hasContent() bool {
 	return len(e.ID) > 0 || len(e.Data) > 0 || len(e.Event) > 0 || len(e.Retry) > 0
 }
